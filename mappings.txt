@@ -1,0 +1,43 @@
+### Basic mapping from isolate table
+isolate:id -> assay:ast_assay_isolate_id
+
+# MIC
+assay:ast_assay_result_id -> assay_ast_analysis_result:ast_assay_result_id
+
+# Drug name
+assay_ast_analysis_result:drug_id -> ren_drug:id
+
+# ODS (required index)
+assay_ast_analysis_result:ast_assay_result_id -> assay_result_reading:ast_assay_result_id
+
+
+### Automated collection from isolate
+isolate_id=98781
+isolate=$(grep ${isolate_id} isolate.tsv | cut -f3 -d$'\t')
+
+# MICs
+ast_assay_result_id=$(grep -r ${isolate_id} assay.tsv | cut -f26 -d$'\t')
+{ echo -e "isolate: ${isolate}\n.";
+  head -n1 assay_ast_analysis_result.tsv;
+  grep ${ast_assay_result_id} assay_ast_analysis_result.tsv | sort -nk13,13;
+} | column -t -s$'\t' | less -S
+
+# ODS
+{ echo -e "isolate: ${isolate}\n.";
+  head -n1 assay_result_reading.tsv;
+  grep ${ast_assay_result_id} assay_result_reading.tsv | sort -nk7,7;
+} | column -t -s$'\t' | less -S
+
+
+### Automated collection from card barcode - for comparison with logged data
+barcode=6461147403332427
+# MIC and isolate name
+ast_assay_result_id=$(grep -r ${barcode} assay.tsv | cut -f26 -d$'\t')
+ast_assay_isolate_id=$(grep -r ${barcode} assay.tsv | cut -f27 -d$'\t')
+
+# MICs
+isolate=$(grep ${ast_assay_isolate_id} isolate.tsv | cut -f3 -d$'\t')
+{ echo -e "isolate: ${isolate}\n.";
+  head -n1 assay_ast_analysis_result.tsv;
+  grep ${ast_assay_result_id} assay_ast_analysis_result.tsv | sort -nk13,13;
+} | column -t -s$'\t' | less -S

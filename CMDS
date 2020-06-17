@@ -1,0 +1,39 @@
+# Get postgres source
+mkdir -p software/
+wget -P software/ https://ftp.postgresql.org/pub/source/v9.2.0/postgresql-9.2.0.tar.gz
+
+# Extract postgres source
+tar -zxvf software/postgresql-9.2.0.tar.gz -C software/ && cd software/postgresql-9.2.0/
+./configure --prefix=$(pwd -P)/../ --disable-float8-byval
+gmake -j4 && gmake install
+cd ../../
+
+# Allow local passwordless auth
+echo 'local all postgres peer' >> data_801/pg_hba.conf
+
+# Run server
+./software/bin/postgres -D data_801/
+
+# Run client
+sudo -u postgres ./software/bin/psql -p 50801
+
+# Enumerate tables
+mkdir -p output/individual_tables/
+sudo -u postgres ./software/bin/psql -p 50801 <<< '\c vitek_db \d' | grep public | sed -e 's/^ public | //' -e 's/ \+ | .\+$//' > output/table_list.txt
+
+# Dump tables
+while read table; do
+  sudo -u postgres ./software/bin/psql -p 50801 < <(sed -e 's#OUTPUT_DIR#'$(pwd -P)/output/individual_tables'#g' -e 's/TABLE/'${table}'/g' scripts/export_table.sql);
+done < output/table_list.txt
+
+# Combine tables and convert to xlsx
+./scripts/merge_tables.py --table_dir output/individual_tables/ --output_fp output/vitek_data.xlsx
+
+# Export some data via SQL
+# Using this as a query:
+# SELECT isolate.id, isolate.labid, isolate.isolate_number, isolate.creation_date_timestamp, isolate.final_date_timestamp, ren_drug.mnemo, ren_drug.long_name, assay_ast_analysis_result.mic, assay_ast_analysis_result.relationship_operator
+#  FROM isolate
+#  INNER JOIN assay ON isolate.id = assay.ast_assay_isolate_id
+#  RIGHT JOIN assay_ast_analysis_result ON assay.ast_assay_result_id = assay_ast_analysis_result.ast_assay_result_id
+#  INNER JOIN ren_drug ON assay_ast_analysis_result.drug_id = ren_drug.id;
+sudo -u postgres ./software/bin/psql -p 50801 -f scripts/export_mics.sql | tail -n+2 > output/vitek_mics_export.csv
