@@ -73,9 +73,9 @@ def main():
         'Vancomycin',
     }
     relation_op_map = {
-        'LessThan': '<',
+        'LessThan': '<=',
         'Equals': '=',
-        'GreaterThan': '>',
+        'GreaterThan': '>=',
     }
 
     print(*data_map.values(), sep='\t')
