@@ -8,22 +8,28 @@ tar -zxvf software/postgresql-9.2.0.tar.gz -C software/ && cd software/postgresq
 gmake -j4 && gmake install
 cd ../../
 
-# Allow local passwordless auth
-echo 'local all postgres peer' >> data_801/pg_hba.conf
+# Allow password-less auth
+sed -i '/^host / { s/md5\r/trust/ }' data_801/pg_hba.conf
 
 # Run server
-./software/bin/postgres -D data_801/
+./software/bin/postgres -D data_801/ -h localhost
 
+# Dump MICs and cast to a wide format
+sudo -u postgres ./software/bin/psql -h localhost -p 50801 -f scripts/export_mics.sql | tail -n+2 > output/vitek_mics_export.csv
+./scripts/cast_data.R output/vitek_mics_export.csv output/vitek_mics_export_wide.csv
+
+
+# Misc
 # Run client
-sudo -u postgres ./software/bin/psql -p 50801
+sudo -u postgres ./software/bin/psql -h localhost -p 50801
 
 # Enumerate tables
 mkdir -p output/individual_tables/
-sudo -u postgres ./software/bin/psql -p 50801 <<< '\c vitek_db \d' | grep public | sed -e 's/^ public | //' -e 's/ \+ | .\+$//' > output/table_list.txt
+sudo -u postgres ./software/bin/psql -h localhost -p 50801 <<< '\c vitek_db \d' | grep public | sed -e 's/^ public | //' -e 's/ \+ | .\+$//' > output/table_list.txt
 
 # Dump tables
 while read table; do
-  sudo -u postgres ./software/bin/psql -p 50801 < <(sed -e 's#OUTPUT_DIR#'$(pwd -P)/output/individual_tables'#g' -e 's/TABLE/'${table}'/g' scripts/export_table.sql);
+  sudo -u postgres ./software/bin/psql -h localhost -p 50801 < <(sed -e 's#OUTPUT_DIR#'$(pwd -P)/output/individual_tables'#g' -e 's/TABLE/'${table}'/g' scripts/export_table.sql);
 done < output/table_list.txt
 
 # Combine tables and convert to xlsx
@@ -36,4 +42,4 @@ done < output/table_list.txt
 #  INNER JOIN assay ON isolate.id = assay.ast_assay_isolate_id
 #  RIGHT JOIN assay_ast_analysis_result ON assay.ast_assay_result_id = assay_ast_analysis_result.ast_assay_result_id
 #  INNER JOIN ren_drug ON assay_ast_analysis_result.drug_id = ren_drug.id;
-sudo -u postgres ./software/bin/psql -p 50801 -f scripts/export_mics.sql | tail -n+2 > output/vitek_mics_export.csv
+sudo -u postgres ./software/bin/psql -h localhost -p 50801 -f scripts/export_mics.sql | tail -n+2 > output/vitek_mics_export.csv
