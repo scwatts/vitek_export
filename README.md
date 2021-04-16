@@ -35,7 +35,7 @@ make -j4 && make install
 cd ../../
 ```
 
-## Prepare database files
+## Database preparation
 Move the database directory `data_801/` into the repo directory. Ensure that this directory has the correct permissions as
 required by the postgres server software:
 ```bash
@@ -48,7 +48,7 @@ sed -i '/^host / { s/md5\r/trust/ }' data_801/pg_hba.conf
 ```
 
 
-## Export MICs
+## MIC export
 Now that the postgres software and VITEK database files are ready we can export the MICs. To do this we first start the
 postgres server for our database files:
 ```bash
