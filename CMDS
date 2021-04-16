@@ -1,5 +1,7 @@
+# Create directories
+mkdir -p software/ output/
+
 # Get postgres source
-mkdir -p software/
 wget -P software/ https://ftp.postgresql.org/pub/source/v9.2.0/postgresql-9.2.0.tar.gz
 
 # Extract postgres source and compile
