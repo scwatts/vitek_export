@@ -15,7 +15,7 @@ d <- read.table(s.fp_in, header=TRUE, sep=',')
 # Get values for output
 v.relationship_op_map <- list(
   'GreaterThan'='>',
-  'Equals'='=',
+  'Equals'='',
   'LessThan'='<'
 )
 d$mic_text <- paste0(v.relationship_op_map[d$relationship_operator], d$mic)
