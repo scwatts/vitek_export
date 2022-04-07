@@ -2,9 +2,9 @@
 ## Database acquition
 First you will need to obtain database files from the computer used to run the VITEK software. On this computer, they are located at:
 ```bash
-D:\VITEK 2 compact\database\postgresql\data_801\
+D:\VITEK 2 compact\database\postgresql\data_901\
 ```
-Transfer the `data_801/` directory to M3 using a USB or private cloud storage (e.g. Google Drive).
+Transfer the `data_901/` directory to M3 using a USB or private cloud storage (e.g. Google Drive).
 
 
 ## Software provisioning
@@ -17,11 +17,13 @@ In order to open the VITEK database we must use the same version of postgres (an
 the VITEK software. There is no pre-compiled postgres release that works in this context and consequently we need to manually
 compile the software ourselves.
 
-Download the postgres source tarball and extract the contents into a separate directory:
+Download the postgres source tarball and extract the contents into a separate directory.
+
+**Note: prior to March 2022, the version of postgresql used was 9.2.0. With the latest update to the VITEK software, we now need to use version 9.6.0, and additional changes are required to the config files in the VITEK data directory (see below for more info).**
 ```bash
 mkdir -p software/
-wget -P software/ https://ftp.postgresql.org/pub/source/v9.2.0/postgresql-9.2.0.tar.gz
-tar -zxvf software/postgresql-9.2.0.tar.gz -C software/ && cd software/postgresql-9.2.0/
+wget -P software/ https://ftp.postgresql.org/pub/source/v9.6.0/postgresql-9.6.0.tar.gz
+tar -zxvf software/postgresql-9.6.0.tar.gz -C software/ && cd software/postgresql-9.6.0/
 ```
 
 Next, configure the software for compilation:
@@ -36,23 +38,25 @@ cd ../../
 ```
 
 ## Database preparation
-Move the database directory `data_801/` into the repo directory. Ensure that this directory has the correct permissions as
+Move the database directory `data_901/` into the repo directory. Ensure that this directory has the correct permissions as
 required by the postgres server software:
 ```bash
-chmod 700 data_801/
+chmod 700 data_901/
 ```
 
 Configure the postgres server software to allow clients to connect without a password:
 ```bash
-sed -i '/^host / { s/md5\r/trust/ }' data_801/pg_hba.conf
+sed -i '/^host / { s/md5\r/trust/ }' data_901/pg_hba.conf
 ```
+
+Edit the `postgresql.conf` file to set `dynamic_shared_memory_type` to none, rather than windows.
 
 
 ## MIC export
 Now that the postgres software and VITEK database files are ready we can export the MICs. To do this we first start the
 postgres server for our database files:
 ```bash
-./software/bin/postgres -D data_801/ -h localhost -p 50808
+./software/bin/postgres -D data_901/ -h localhost -p 50808
 ```
 
 Finally, we can create an output directory and execute the export:
@@ -62,6 +66,9 @@ mkdir -p output/
 ```
 
 Optionally the exported MIC table can be cast to a wide format, which can be useful for importing this data into the lab database. To run this step on M3 you will need to have loaded an R environment module and installed the `reshape2` package.
+
+On M3, ensure you are using R version 4.1 (`R/4.1.0-mkl`).
 ```bash
+module load R/4.1.0-mkl
 ./scripts/cast_data.R output/vitek_mics_export.csv output/vitek_mics_export_wide.csv
 ```
